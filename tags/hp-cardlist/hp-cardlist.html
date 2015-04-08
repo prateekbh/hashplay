@@ -1,0 +1,8 @@
+<hp-cardlist>
+    <hp-card each={card, index in cards} class="card-{index}" style="-webkit-animation-delay:{(index+1)*50}ms" title="How u doin???" model={card}>
+    </hp-card>
+    
+    <script>
+        this.cards=window.response;
+    </script>
+</hp-cardlist>
