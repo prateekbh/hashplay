@@ -1,24 +1,39 @@
 /*global riot */
 
-(function() {
+(function(exports,riot) {
     "use strict";
 
     var fevicol = {
         version: "v0.0.1",
         settings: {
             viewTag: ".app-body"
-        }
+        },
+        eventBus:riot.observable()
     };
 
     var viewTag = null;
 
     var routes = [];
 
-    fevicol.createRoute = function(stateName, urlRegex, componentToMount) {
+    var componentDataStore = {};
+
+    var currentState = {
+        name: "",
+        state: {}
+    };
+
+    var _currentcomponent = null;
+
+    /*============================================
+        Router Logic
+    ============================================*/
+
+    fevicol.createRoute = function(stateName, urlRegex, componentToMount, preserveDateOnUnmount) {
         return {
             url: urlRegex,
             state: stateName,
-            component: componentToMount
+            component: componentToMount,
+            preserveDateOnUnmount: preserveDateOnUnmount||false
         };
     };
 
@@ -34,7 +49,10 @@
     fevicol.addRoute = function(route) {
         if (route && route.url && route.component) {
             routes.push(route);
-            fevicol.location(fevicol.getCurrentPath());
+            if (routes.length === 1) {
+                fevicol.location(fevicol.getCurrentPath());
+            }
+
         } else {
             throw new Error("Route object should contain a URL regex and a component name");
         }
@@ -49,7 +67,8 @@
             if (history && history.pushState) {
                 for (var r in routes) {
                     var route = routes[r];
-                    if (route.url.match(newRoute)) {
+                    if (route.url.match(newRoute) && (currentState.name !== route.state)) {
+
                         history.pushState(route, "", newRoute);
                         evalRoute(route);
                         break;
@@ -63,35 +82,76 @@
         }
     };
 
-    function fevicolAnchorBehaviour() {
-        var self=this;
-        fevicol.location(self.getAttribute("href"));
-        return false;
-    }
-
-    function evalRoute(stateObj) {
-        viewTag.innerHTML = "";
-        //var currComponent = fevicol.app.currentcomponent;
-        fevicol.currentcomponent = document.createElement(stateObj.component);
-        viewTag.appendChild(fevicol.currentcomponent);
-        riot.mount("*", {});
-        var anchors = document.querySelectorAll("a");
-        for (var anchorIndex = 0; anchorIndex < anchors.length; anchorIndex++) {
-            var anchor = anchors[anchorIndex];
-            anchor.onclick = fevicolAnchorBehaviour;
-        }
-    }
-
     window.onpopstate = function(e) {
         evalRoute(e.state);
     };
 
-    fevicol.doAjax = function(url,data){
-        
-    };
+    function evalRoute(stateObj) {
+        var componentName = stateObj.component;
+        var currentComponent = _currentcomponent;
+        var prevState = currentState;
+        var preserveComponentData = false;
+
+        if (prevState && prevState.state && prevState.state.preserveDateOnUnmount) {
+            preserveComponentData = prevState.state.preserveDateOnUnmount;
+        }
+
+        currentState.name = stateObj.state;
+        currentState.state = stateObj;
+        if (currentComponent) {
+
+            currentComponent.addEventListener("webkitTransitionEnd", function() {
+                unmountComponent(currentComponent, preserveComponentData);
+            })
+            currentComponent.addEventListener("transitionend", function() {
+                unmountComponent(currentComponent, preserveComponentData);
+            })
+            currentComponent.classList.add("fevicol-unmount");
+        }
+
+        _currentcomponent = document.createElement(componentName);
+
+        componentDataStore[componentName] = componentDataStore[componentName] || {};
+        viewTag.appendChild(_currentcomponent);
+        riot.mount("*", {});
+    }
 
 
 
+    /*============================================
+        Util Functions
+    ============================================*/
+
+    function unmountComponent(component, preserveData) {
+        if (!preserveData && component) {
+            var tagName = component.tagName.toLowerCase();
+            delete(componentDataStore[tagName]);
+        }
+        component.remove();
+    }
+
+    function handleAnchorClick(e) {
+        var node = e.target;
+        while (node != document.body) {
+            if (node.tagName == "A") {
+                e.preventDefault();
+                fevicol.location(node.getAttribute("href"));
+                break;
+            }
+            node = node.parentNode;
+        }
+
+    }
+
+    fevicol.getCurrentComponentData = function() {
+        var tagName = _currentcomponent.tagName.toLowerCase();
+        return componentDataStore[tagName];
+    }
+
+
+    /*============================================
+        Init Functions
+    ============================================*/
 
     function initFevicol() {
         viewTag = document.querySelector(fevicol.settings.viewTag);
@@ -100,8 +160,11 @@
         } else {
             riot.mount("*", {});
         }
-        window.fevicol=fevicol;
+
+        exports.fevicol = fevicol;
+
+        document.addEventListener("click", handleAnchorClick);
     }
 
     initFevicol();
-})();
+})(this,riot);

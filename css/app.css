@@ -59,6 +59,10 @@ hp-header .icon-settings {
     right: 5px;
 }
 
+hp-cardlist{
+    display: block;
+}
+
 hp-card {
     display: block;
     background-color: #fff;
@@ -80,6 +84,34 @@ hp-card {
     	opacity: 1;
     	transform: translateY(0px);
     }
+}
+
+
+hp-card .header{
+    padding: 5px;
+    border-bottom: 1px solid #f8d442;
+    font-weight: bold;
+}
+
+hp-card .body{
+    padding: 10px;
+}
+
+
+.action-panel{
+    text-align: center;
+}
+
+.action-panel button{
+    margin: auto;
+    border: 1px solid rgb(211, 94, 15);
+    background-color: rgb(211, 94, 15);
+    color: #fff;
+    display: block;
+    font-family: Roboto, 'Droid Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    height: 40px;
+    width: 95%;
 }
 
 hp-card .desc{
