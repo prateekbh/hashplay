@@ -1,0 +1,5 @@
+/node_modules
+/.sass-cache
+/public/css/*
+/public/tags/*
+/public/javascripts/*
