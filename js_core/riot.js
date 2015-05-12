@@ -1470,11 +1470,8 @@ riot.mountTo = riot.mount
 
     // add to queue
     if (promise) {
-      arg && promise.on('ready', arg);
-      riot.doneLoadingTags=function(){
-         promise.trigger('ready');
-         ready = true;
-      }
+      arg && promise.on('ready', arg)
+
     // grab riot/tag elements + load & execute them
     } else {
       promise = riot.observable()
@@ -1489,7 +1486,6 @@ riot.mountTo = riot.mount
   riot.mount = function(a, b, c) {
     var ret
     riot.compile(function() { ret = mount(a, b, c) })
-    console.log(ret);
     return ret
   }
 

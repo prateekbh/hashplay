@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <link rel="stylesheet" type="text/css" href="/css/app.css">
+    <link rel="stylesheet" type="text/css" href="/public/css/quick_styles.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style type="text/css">
         .fevicol-unmount{
@@ -16,10 +16,8 @@
     <section class="app-body">
     </section>
 
-    <script src="/bin/app.js"></script>
-    <!--<script src="/riot_core/riot.js"></script>
-    <script src="/riot_core/veronica.js"></script>
-    <script src="/tags/compiled_app_tags.js" type="riot/tag"></script>-->
+    <script src="/public/javascripts/compiled_js.js"></script>
+    <script type="riot/tag" src="/public/tags/compiled_tags.js"></script>
     <script>
         window.addEventListener("veronica:init",function(){
             veronica.addRoute(veronica.createRoute("home","/","hp-cardlist",true));

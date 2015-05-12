@@ -757,7 +757,7 @@
         } else {
             window.dispatchEvent(new Event("veronica:init"));
             riot.mount("*", {});
-            riot.doneLoadingTags();
+            //riot.doneLoadingTags();
         }
 
         document.addEventListener("click", framework.utils.handleAnchorClick);

@@ -11,7 +11,7 @@ module.exports = function(grunt) {
     var veronicaSettings = grunt.file.readJSON("./veronica_settings.json");
 
     //tag folder name
-    var tagsFolder = veronicaSettings.quest.tagFolder || "tags";
+    var tagsFolder = veronicaSettings.veronica.tagFolder || "tags";
 
     /* =====================================
         CSS Files List
@@ -30,18 +30,18 @@ module.exports = function(grunt) {
         pkg: grunt.file.readJSON("package.json"),
 
         clean: {
-            pre_build: [tagsFolder + "/**/*.js", veronicaSettings.quest.compiledStackFile, compiledCssPath],
+            pre_build: [tagsFolder + "/**/*.js", veronicaSettings.veronica.compiledStackFile, compiledCssPath],
             post_build: [compiledCssPath.replace(".css", ".scss")]
         },
 
         concat: {
             concat_tags: {
                 src: tagsFolder + "/**/*.html",
-                dest: veronicaSettings.quest.compiledTagFile,
+                dest: veronicaSettings.veronica.compiledTagFile,
             },
             concat_js: {
-                src: [veronicaSettings.quest.riotFilePath, veronicaSettings.quest.questFilePath],
-                dest: veronicaSettings.quest.compiledStackFile
+                src: [veronicaSettings.veronica.riotFilePath, veronicaSettings.veronica.veronicaFilePath],
+                dest: veronicaSettings.veronica.compiledStackFile
             },
             concat_scss: {
                 src: cssFilesList.css_files,
