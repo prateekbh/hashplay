@@ -1,4 +1,4 @@
-/* globals riot,ActiveXObject */ ;
+/* globals riot,$,ActiveXObject */ 
 
 (function(window, riot) {
     "use strict";
@@ -7,44 +7,39 @@
         version: "v0.0.2",
         settings: {
             viewTag: ".app-body",
-            maxPageTransitionTime: 500,
-            semiQualifiedBrowsers: [
-                "UCBrowser",
-                "Opera Mini"
-            ]
+            maxPageTransitionTime: 500
         }
     };
 
+    var semiQualifiedBrowsers = [
+        "UCBrowser",
+        "Opera Mini"
+    ];
+
+    var globals = {
+        BROWSER_SUPPORT : "A" //A for full support, B for semi support
+    };
     var framework = {};
 
     /* Core ===============*/
-    (function(fw,window) {
+    (function(fw, window) {
         var appStatus = {};
 
         function Core() {
             this.applicationStatus = appStatus;
         }
 
-        Core.prototype.selector = function(domQuery, root) {
-            if (root) {
-                return root.querySelectorAll(domQuery);
-            } else {
-                return document.querySelectorAll(domQuery);
-            }
+        window.$ = function(tag, root) {
+            return document.querySelectorAll(tag, root);
         };
 
-        window.$=function(tag,root){
-            return document.querySelectorAll(tag,root);
-        }
-
         fw.Core = Core;
-    })(framework,window);
+    })(framework, window);
 
     /* Event Bus ===============*/
 
     /*Reference: https://github.com/munkychop/bullet*/
     (function(veronica) {
-        "use strict";
 
         var PB = function() {
             var _self = this,
@@ -129,7 +124,7 @@
             this._errorCallbacks = [];
         }
 
-        function resolvePromise(func,context,queue,promise){
+        function resolvePromise(func, context, queue, promise) {
             queue.push(function() {
                 var res = func.apply(context, arguments);
                 if (res && typeof res.then === "function")
@@ -143,18 +138,18 @@
                 p = func.apply(context, this.result);
             } else {
                 p = new Promise();
-                resolvePromise(func,context,this._successCallbacks,p);
+                resolvePromise(func, context, this._successCallbacks, p);
             }
             return p;
         };
 
         Promise.prototype.catch = function(func, context) {
             var p;
-            if (this._isdone&&this._isfailure) {
+            if (this._isdone && this._isfailure) {
                 p = func.apply(context, this.result);
             } else {
                 p = new Promise();
-                resolvePromise(func,context,this._errorCallbacks,p);
+                resolvePromise(func, context, this._errorCallbacks, p);
             }
             return p;
         };
@@ -310,10 +305,9 @@
                     var err = (!xhr.status ||
                         (xhr.status < 200 || xhr.status >= 300) &&
                         xhr.status !== 304);
-                    if(err){
+                    if (err) {
                         p.reject(err);
-                    }
-                    else{
+                    } else {
                         p.resolve(xhr.responseText, xhr);
                     }
 
@@ -555,7 +549,7 @@
                             if (core.applicationStatus.currentState.name === "") {
                                 history.replaceState(route, "", newRoute);
                             } else {
-                                route.prevPage=currRoute;
+                                route.prevPage = currRoute;
                                 history.pushState(route, "", newRoute);
                                 veronica.isPageFromPush = true;
                             }
@@ -654,7 +648,7 @@
                         }
                     }, veronica.settings.maxPageTransitionTime);
 
-                    if (navigator.userAgent.indexOf("UCBrowser") == -1) {
+                    if (globals.BROWSER_SUPPORT === "A") {
                         elem.classList.add(pageEnterEffect);
                         core.applicationStatus.pageTag.classList.add(pageLeaveEffect);
                         core.applicationStatus.viewTag.appendChild(elem);
@@ -682,14 +676,13 @@
             core.applicationStatus.pageTag = newPage;
         }
 
-        function getPrevPageUrl(){
-            if(history.state){
-                return history.state.prevPage||null;
-            }
-            else{
+        function getPrevPageUrl() {
+            if (history.state) {
+                return history.state.prevPage || null;
+            } else {
                 return null;
             }
-            
+
         }
 
         var router = {
@@ -713,10 +706,10 @@
 
     function testAnimationCapability() {
         var animation = false,
-            animationstring = 'animation',
-            keyframeprefix = '',
-            domPrefixes = 'Webkit Moz O ms Khtml'.split(' '),
-            pfx = '',
+            animationstring = "animation",
+            keyframeprefix = "",
+            domPrefixes = "Webkit Moz O ms Khtml".split(" "),
+            pfx = "",
             elm = $("body")[0];
 
         if (elm.style.animationName !== undefined) {
@@ -725,10 +718,10 @@
 
         if (animation === false) {
             for (var i = 0; i < domPrefixes.length; i++) {
-                if (elm.style[domPrefixes[i] + 'AnimationName'] !== undefined) {
+                if (elm.style[domPrefixes[i] + "AnimationName"] !== undefined) {
                     pfx = domPrefixes[i];
-                    animationstring = pfx + 'Animation';
-                    keyframeprefix = '-' + pfx.toLowerCase() + '-';
+                    animationstring = pfx + "Animation";
+                    keyframeprefix = "-" + pfx.toLowerCase() + "-";
                     animation = true;
                     break;
                 }
@@ -736,6 +729,16 @@
         }
 
         return animation;
+    }
+
+    function isBrowserSemiSupported() {
+        for (var uaIndex = 0; uaIndex < semiQualifiedBrowsers; uaIndex++) {
+            var currUA = semiQualifiedBrowsers[uaIndex];
+            if (navigator.userAgent.indexOf(currUA) !== -1) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
@@ -750,6 +753,10 @@
 
         if (!testAnimationCapability()) {
             $("body")[0].classList.add("noanim");
+        }
+
+        if (isBrowserSemiSupported()) {
+            globals.BROWSER_SUPPORT = "B";
         }
 
         if (core.applicationStatus.routes.length > 0) {
