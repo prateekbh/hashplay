@@ -17,24 +17,17 @@
     ];
 
     var globals = {
-        BROWSER_SUPPORT : "A" //A for full support, B for semi support
+        BROWSER_SUPPORT : "A", //A for full support, B for semi support
+        applicationStatus:{}
     };
     var framework = {};
 
     /* Core ===============*/
-    (function(fw, window) {
-        var appStatus = {};
-
-        function Core() {
-            this.applicationStatus = appStatus;
-        }
-
+    (function(window) {
         window.$ = function(tag, root) {
             return document.querySelectorAll(tag, root);
         };
-
-        fw.Core = Core;
-    })(framework, window);
+    })(window);
 
     /* Event Bus ===============*/
 
@@ -174,50 +167,6 @@
             this._errorCallbacks = [];
         };
 
-        // function join(promises) {
-        //     var p = new Promise();
-        //     var results = [];
-
-        //     if (!promises || !promises.length) {
-        //         p.done(results);
-        //         return p;
-        //     }
-
-        //     var numdone = 0;
-        //     var total = promises.length;
-
-        //     function notifier(i) {
-        //         return function() {
-        //             numdone += 1;
-        //             results[i] = Array.prototype.slice.call(arguments);
-        //             if (numdone === total) {
-        //                 p.done(results);
-        //             }
-        //         };
-        //     }
-
-        //     for (var i = 0; i < total; i++) {
-        //         promises[i].then(notifier(i));
-        //     }
-
-        //     return p;
-        // }
-
-        // function chain(funcs, args) {
-        //     var p = new Promise();
-        //     if (funcs.length === 0) {
-        //         p.done.apply(p, args);
-        //     } else {
-        //         funcs[0].apply(null, args).then(function() {
-        //             funcs.splice(0, 1);
-        //             chain(funcs, arguments).then(function() {
-        //                 p.done.apply(p, arguments);
-        //             });
-        //         });
-        //     }
-        //     return p;
-        // }
-
         var promise = {
             Promise: Promise
         };
@@ -352,16 +301,15 @@
 
     })(veronica);
     /* Persistance===============*/
-    (function(fw, veronica) {
+    (function(veronica) {
         var componentDataStore = {};
-        var core = new fw.Core();
 
         veronica.getCurrentComponentData = function() {
-            return componentDataStore[core.applicationStatus.currentComponent.tagName.toLowerCase()];
+            return componentDataStore[globals.applicationStatus.currentComponent.tagName.toLowerCase()];
         };
 
         framework.setCurrentComponentData = function(Obj) {
-            componentDataStore[core.applicationStatus.currentComponent.tagName.toLowerCase()] = Obj;
+            componentDataStore[globals.applicationStatus.currentComponent.tagName.toLowerCase()] = Obj;
         };
 
 
@@ -415,7 +363,7 @@
             removeData: removeData
         };
 
-    })(framework, veronica);
+    })(veronica);
     /* Utils===============*/
     (function(fw) {
         fw.utils = {};
@@ -453,7 +401,7 @@
             var locPromise = window.$q();
             var options = {
                 enableHighAccuracy: false,
-                timeout: 1500,
+                timeout: 5000,
                 maximumAge: 900000
             };
 
@@ -479,6 +427,7 @@
                 sensorStatus.GPS = "N/A";
                 locPromise.reject("LOCATION_NOT_AVAILABLE");
             }
+
             return locPromise;
         }
 
@@ -488,21 +437,20 @@
         };
     })(veronica);
     /* Router===============*/
-    (function(fw, veronica) {
-
-        var core = new fw.Core();
+    (function(veronica) {
         var isPageFromPush = false;
-        core.applicationStatus.viewTag = null;
-        core.applicationStatus.pageTag = null;
-        core.applicationStatus.routes = [];
-        core.applicationStatus.currentState = {
+        var appStatus=globals.applicationStatus;
+
+        appStatus.viewTag = null;
+        appStatus.pageTag = null;
+        appStatus.routes = [];
+
+        appStatus.currentState = {
             name: "",
             state: {}
         };
 
-        core.applicationStatus.currentComponent = null;
-
-        core.applicationStatus.currentComponent = null;
+        appStatus.currentComponent = null;
 
         function createRoute(stateName, urlRegex, componentToMount, preserveDateOnUnmount) {
             return {
@@ -525,9 +473,13 @@
         }
 
         function addRoute(route) {
-            var currState = core.applicationStatus.currentState;
+            var currState = appStatus.currentState;
             if (route && route.url && route.component) {
-                core.applicationStatus.routes.push(route);
+                //handle special case of home in which case giving / for route is much more intuitive.
+                if(route.url==="/"){
+                    route.url="\/$";
+                }
+                appStatus.routes.push(route);
                 if (currState.name === "") {
                     loc(getCurrentPath());
                 }
@@ -538,15 +490,18 @@
 
         function loc() {
             if (arguments.length === 0) {
-                return core.applicationStatus.currentState;
+                return appStatus.currentState;
             } else if (arguments.length > 0 && typeof(arguments[0]) == "string") {
                 var newRoute = arguments[0];
                 var currRoute = getCurrentPath();
                 if (history && history.pushState) {
-                    for (var r in core.applicationStatus.routes) {
-                        var route = core.applicationStatus.routes[r];
-                        if (newRoute.match(route.url) && (core.applicationStatus.currentState.name !== route.state)) {
-                            if (core.applicationStatus.currentState.name === "") {
+                    var urlFound=false;
+                    for (var r in appStatus.routes) {
+                        var route = appStatus.routes[r];
+
+                        //check if route matches and is not the current route
+                        if (newRoute.match(route.url) && (appStatus.currentState.name !== route.state)) {
+                            if (appStatus.currentState.name === "") {
                                 history.replaceState(route, "", newRoute);
                             } else {
                                 route.prevPage = currRoute;
@@ -563,12 +518,17 @@
                                 pageLeaveEffect = arguments[2];
                             }
                             evalRoute(route, pageEnterEffect, pageLeaveEffect);
+                            urlFound=true;
                             break;
                         }
                     }
+                    //current web app does not have this route so send this request to Server
+                    if(!urlFound){
+                        location.href=newRoute;
+                    }
                 } else {
                     if (newRoute !== currRoute) {
-                        throw new Error("full page reload logic here"); //TODO: full page reload logic here
+                        location.href=newRoute;
                     }
                 }
             }
@@ -577,7 +537,7 @@
         window.onpopstate = function(e) {
             // if(e) because veronica shouldn't intrupt the #changes
             if (e && e.state) {
-                if (core.applicationStatus.currentState.state.state !== e.state.state) {
+                if (appStatus.currentState.state.state !== e.state.state) {
                     veronica.eventBus.trigger("veronica:stateChange", e.state);
                 }
                 evalRoute(e.state, "mounting-pop", "unmount-pop");
@@ -591,7 +551,7 @@
             }
 
             var componentName = stateObj.component;
-            var prevState = core.applicationStatus.currentState;
+            var prevState = appStatus.currentState;
             var preserveComponentData = false;
 
             //check if data of this component is to be preserved
@@ -600,9 +560,9 @@
             }
 
             //initialize current state and component
-            core.applicationStatus.currentState.name = stateObj.state;
-            core.applicationStatus.currentState.state = stateObj;
-            core.applicationStatus.currentComponent = document.createElement(componentName);
+            appStatus.currentState.name = stateObj.state;
+            appStatus.currentState.state = stateObj;
+            appStatus.currentComponent = document.createElement(componentName);
 
             //set current component data in data store
             framework.setCurrentComponentData(veronica.getCurrentComponentData() || {});
@@ -616,55 +576,55 @@
             pageEnterEffect = pageEnterEffect || "mounting";
             pageLeaveEffect = pageLeaveEffect || "unmount";
 
-            if (core.applicationStatus.viewTag) {
+            if (appStatus.viewTag) {
                 //if there is already something in current page
-                if (core.applicationStatus.pageTag.children.length > 0) {
+                if (appStatus.pageTag.children.length > 0) {
                     var elem = document.createElement("div");
                     var shownEventFired = false;
-                    elem.className = "page " + core.applicationStatus.currentComponent.tagName.toLowerCase();
-                    elem.appendChild(core.applicationStatus.currentComponent);
+                    elem.className = "page " + appStatus.currentComponent.tagName.toLowerCase();
+                    elem.appendChild(appStatus.currentComponent);
 
-                    core.applicationStatus.pageTag.addEventListener("webkitTransitionEnd", function() {
+                    appStatus.pageTag.addEventListener("webkitTransitionEnd", function() {
                         animEndCallback(this, elem);
                         shownEventFired = true;
-                        core.applicationStatus.currentComponent.dispatchEvent(new Event("shown"));
+                        appStatus.currentComponent.dispatchEvent(new Event("shown"));
                     });
 
-                    core.applicationStatus.pageTag.addEventListener("oTransitionEnd", function() {
+                    appStatus.pageTag.addEventListener("oTransitionEnd", function() {
                         animEndCallback(this, elem);
                         shownEventFired = true;
-                        core.applicationStatus.currentComponent.dispatchEvent(new Event("shown"));
+                        appStatus.currentComponent.dispatchEvent(new Event("shown"));
                     });
 
-                    core.applicationStatus.pageTag.addEventListener("transitionend", function() {
+                    appStatus.pageTag.addEventListener("transitionend", function() {
                         animEndCallback(this, elem);
                         shownEventFired = true;
-                        core.applicationStatus.currentComponent.dispatchEvent(new Event("shown"));
+                        appStatus.currentComponent.dispatchEvent(new Event("shown"));
                     });
 
                     setTimeout(function() {
                         if (!shownEventFired) {
-                            core.applicationStatus.currentComponent.dispatchEvent(new Event("shown"));
+                            appStatus.currentComponent.dispatchEvent(new Event("shown"));
                         }
                     }, veronica.settings.maxPageTransitionTime);
 
                     if (globals.BROWSER_SUPPORT === "A") {
                         elem.classList.add(pageEnterEffect);
-                        core.applicationStatus.pageTag.classList.add(pageLeaveEffect);
-                        core.applicationStatus.viewTag.appendChild(elem);
+                        appStatus.pageTag.classList.add(pageLeaveEffect);
+                        appStatus.viewTag.appendChild(elem);
 
                     } else {
-                        var newComponent = core.applicationStatus.currentComponent.tagName.toLowerCase();
+                        var newComponent = appStatus.currentComponent.tagName.toLowerCase();
                         var newTag = "<div class='page " + newComponent + "'>" + "<" + newComponent + "></" + newComponent + ">" + "</div>";
-                        core.applicationStatus.pageTag.innerHTML = newTag;
+                        appStatus.pageTag.innerHTML = newTag;
                     }
 
 
 
                 } else {
                     //if this is the first time a page is being mounted
-                    core.applicationStatus.pageTag.classList.add(core.applicationStatus.currentComponent.tagName.toLowerCase());
-                    core.applicationStatus.pageTag.appendChild(core.applicationStatus.currentComponent);
+                    appStatus.pageTag.classList.add(appStatus.currentComponent.tagName.toLowerCase());
+                    appStatus.pageTag.appendChild(appStatus.currentComponent);
                 }
             }
         }
@@ -672,8 +632,8 @@
         function animEndCallback(currElem, newPage) {
             currElem.className = "hidden";
             currElem.remove();
-            newPage.className = "page " + core.applicationStatus.currentComponent.tagName.toLowerCase();
-            core.applicationStatus.pageTag = newPage;
+            newPage.className = "page " + appStatus.currentComponent.tagName.toLowerCase();
+            appStatus.pageTag = newPage;
         }
 
         function getPrevPageUrl() {
@@ -685,18 +645,14 @@
 
         }
 
-        var router = {
-            createRoute: createRoute,
-            getCurrentPath: getCurrentPath,
-            addRoute: addRoute,
-            getPrevPageUrl: getPrevPageUrl,
-            loc: loc
-        };
-
-        fw.router = router;
         veronica.isPageFromPush = isPageFromPush;
+        veronica.createRoute = createRoute;
+        veronica.getCurrentPath = getCurrentPath;
+        veronica.getPrevPageUrl=getPrevPageUrl;
+        veronica.addRoute = addRoute;
+        veronica.loc = loc;
 
-    })(framework, veronica);
+    })(veronica);
 
     /* Init===============*/
     window.$q = function() {
@@ -745,11 +701,11 @@
     function init() {
 
         var $ = window.$;
-        var core = new framework.Core();
-        core.applicationStatus.viewTag = $(veronica.settings.viewTag)[0];
-        core.applicationStatus.viewTag.innerHTML = "<div class='page'></div>";
 
-        core.applicationStatus.pageTag = core.applicationStatus.viewTag.querySelector(".page");
+        globals.applicationStatus.viewTag = $(veronica.settings.viewTag)[0];
+        globals.applicationStatus.viewTag.innerHTML = "<div class='page'></div>";
+
+        globals.applicationStatus.pageTag = globals.applicationStatus.viewTag.querySelector(".page");
 
         if (!testAnimationCapability()) {
             $("body")[0].classList.add("noanim");
@@ -757,23 +713,18 @@
 
         if (isBrowserSemiSupported()) {
             globals.BROWSER_SUPPORT = "B";
+            $("body")[0].classList.add("noanim");
         }
 
-        if (core.applicationStatus.routes.length > 0) {
+        if (globals.applicationStatus.routes.length > 0) {
             veronica.loc(veronica.getCurrentPath());
         } else {
             window.dispatchEvent(new Event("veronica:init"));
             riot.mount("*", {});
-            //riot.doneLoadingTags();
         }
 
         document.addEventListener("click", framework.utils.handleAnchorClick);
     }
-
-    veronica.createRoute = framework.router.createRoute;
-    veronica.getCurrentPath = framework.router.getCurrentPath;
-    veronica.addRoute = framework.router.addRoute;
-    veronica.loc = framework.router.loc;
 
     document.onreadystatechange = function() {
         if (document.readyState == "interactive") {

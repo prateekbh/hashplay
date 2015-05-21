@@ -15,12 +15,11 @@
     <hp-header></hp-header>
     <section class="app-body">
     </section>
-
     <script src="/public/javascripts/compiled_js.js"></script>
     <script type="riot/tag" src="/public/tags/compiled_tags.js"></script>
     <script>
         window.addEventListener("veronica:init",function(){
-            veronica.addRoute(veronica.createRoute("home","/","hp-cardlist",true));
+            veronica.addRoute(veronica.createRoute("home","\/$","hp-cardlist",true));
             veronica.addRoute(veronica.createRoute("settings","/settings","hp-settings"));
         });
     </script>
